@@ -1,4 +1,4 @@
-package com.yusufu.httpserver;
+package com.king.httpserver;
 
 import com.sun.net.httpserver.*;
 
@@ -10,41 +10,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings("restriction")
 public class SimpleHttpServer {
 
+    //static class only one instance for same port
+
     private HttpServer httpServer;
 
-    /**
-     * Instantiates a new simple http server.
-     *
-     * @param port the port
-     * @param context the context
-     * @param handler the handler
-     */
     public SimpleHttpServer(int port, String context, HttpHandler handler) {
         try {
-            //Create HttpServer which is listening on the given port
             httpServer = HttpServer.create(new InetSocketAddress(port), 0);
-            //Create a new context for the given context and handler
-            HttpContext httpContext = httpServer.createContext(context, handler);
-            //Create a default executor
-            //httpServer.setExecutor(null);
-
-            httpContext.setAuthenticator(new Authenticator() {
-                @Override
-                public Result authenticate(HttpExchange exch) {
-                    return null;
-                }
-            });
-
-
-
-            //httpServer.setExecutor(new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue<>()));
+            httpServer.createContext(context, handler);
             httpServer.setExecutor(createThreadPoolExecutor());
-            //httpServer.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
-            httpServer.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     public void start() {
@@ -52,7 +29,7 @@ public class SimpleHttpServer {
     }
 
 
-    public ThreadPoolExecutor createThreadPoolExecutor() {
+    private ThreadPoolExecutor createThreadPoolExecutor() {
 
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
                 Runtime.getRuntime().availableProcessors(),
@@ -63,7 +40,8 @@ public class SimpleHttpServer {
                 getThreadFactory());
 
         //threadPoolExecutor.setRejectedExecutionHandler(new ShutdownRejectedExecutionHandler(threadPoolExecutor.getRejectedExecutionHandler()));
-
+        //Executors.newCachedThreadPool();
+        //Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors();
         return threadPoolExecutor;
     }
 
@@ -78,15 +56,15 @@ public class SimpleHttpServer {
         return factory;
     }
 
-    public BlockingQueue createBlockingQueue() {
+    private BlockingQueue createBlockingQueue() {
         BlockingQueue arrayBlockingQueue = new ArrayBlockingQueue(1024);
 
-        //No upper bound
-        BlockingQueue asyncSenderThreadPoolQueue = new LinkedBlockingQueue<Runnable>(50000);
+        //No default upper bound,FIFO
+        BlockingQueue linkedBlockingQueue = new LinkedBlockingQueue<Runnable>(50000);
         //sort upon Comparable
         BlockingQueue  priorityBlockingQueue = new PriorityBlockingQueue();
 
-        return asyncSenderThreadPoolQueue;
+        return linkedBlockingQueue;
     }
 
 
