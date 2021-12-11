@@ -1,4 +1,4 @@
-package com.king.httpserver;
+package com.king.gameserver;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -6,13 +6,14 @@ import java.net.URL;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import static com.king.httpserver.Util.*;
+import static com.king.gameserver.Util.*;
 
 public class HttpServerTest {
 
     private static final String CONTEXT = "/";
     private static final int PORT = 8081;
     private static String ADDRESS = "http://localhost";
+    private final static int BACKLOG = 100;
 
     static int[] userIds= {1,2,3,4,5,6,7,8,9};
     static int[] levels = {10,10,10,10,10,10,10,10,10};
@@ -20,7 +21,7 @@ public class HttpServerTest {
 
     public static void main(String[] args) {
 
-        SimpleHttpServer simpleHttpServer = new SimpleHttpServer(PORT, CONTEXT, new RootHandler());
+        SimpleHttpServer simpleHttpServer = new SimpleHttpServer(PORT, CONTEXT, new RootHandler(),BACKLOG);
 
         simpleHttpServer.start();
         System.out.println("King Server is started and listening on port "+ PORT + " context "+ CONTEXT);
@@ -52,7 +53,7 @@ public class HttpServerTest {
             os.close();
             connection.connect();
 
-            //Get Response
+            //retrieve response
             String result;
             BufferedInputStream bis = new BufferedInputStream(connection.getInputStream());
             ByteArrayOutputStream buf = new ByteArrayOutputStream();

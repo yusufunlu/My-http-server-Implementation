@@ -1,4 +1,4 @@
-package com.king.httpserver;
+package com.king.gameserver;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -9,7 +9,7 @@ import java.net.URI;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.king.httpserver.Util.*;
+import static com.king.gameserver.Util.*;
 
 @SuppressWarnings("restriction")
 public class RootHandler implements HttpHandler {

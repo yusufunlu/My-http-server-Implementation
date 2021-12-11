@@ -1,4 +1,4 @@
-package com.king.httpserver;
+package com.king.gameserver;
 
 import com.sun.net.httpserver.*;
 
@@ -7,14 +7,13 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@SuppressWarnings("restriction")
 public class SimpleHttpServer {
 
     //static class only one instance for same port
 
     private HttpServer httpServer;
 
-    public SimpleHttpServer(int port, String context, HttpHandler handler) {
+    public SimpleHttpServer(int port, String context, HttpHandler handler, int backlog) {
         try {
             httpServer = HttpServer.create(new InetSocketAddress(port), 0);
             httpServer.createContext(context, handler);
@@ -57,7 +56,6 @@ public class SimpleHttpServer {
     }
 
     private BlockingQueue createBlockingQueue() {
-        BlockingQueue arrayBlockingQueue = new ArrayBlockingQueue(1024);
 
         //No default upper bound,FIFO
         BlockingQueue linkedBlockingQueue = new LinkedBlockingQueue<Runnable>(50000);

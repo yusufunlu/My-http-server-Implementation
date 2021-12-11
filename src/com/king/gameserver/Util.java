@@ -1,4 +1,4 @@
-package com.king.httpserver;
+package com.king.gameserver;
 
 import com.sun.net.httpserver.HttpExchange;
 
