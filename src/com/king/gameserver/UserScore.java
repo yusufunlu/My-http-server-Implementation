@@ -30,10 +30,19 @@ public class UserScore implements Comparable<UserScore>, Serializable {
         return result;
     }
 
-
     @Override
     public int compareTo(UserScore o) {
-        return this.score.compareTo(o.score);
+        if (userId == o.userId) {
+            if(score >= o.score){
+                System.out.println("same came userid: "+ userId + " score: "+ score);
+                return 0;
+            } else {
+                System.out.println("bigger came userid: "+ userId + " old score: "+ score+ " new score: "+ o.score);
+                return 1;
+            }
+        } else {
+            return this.score.compareTo(o.score);
+        }
     }
 
     @Override

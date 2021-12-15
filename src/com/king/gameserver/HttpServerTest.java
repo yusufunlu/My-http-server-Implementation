@@ -3,8 +3,10 @@ package com.king.gameserver;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static com.king.gameserver.Util.*;
 
@@ -15,9 +17,10 @@ public class HttpServerTest {
     private static String ADDRESS = "http://localhost";
     private final static int BACKLOG = 100;
 
-    static int[] userIds= {1,2,3,4,5,6,7,8,9};
-    static int[] levels = {10,10,10,10,10,10,10,10,10};
-    static Integer[] scores = {100,200,300,400,500,600,700,800,900};
+    static int[] levels = {10,10,10,10,10,10,10,10,10,10};
+    static int[] userIds=       {2,  1,  1, 3,  1,  4,  1,  7,  8,  9,  5,  6,  7,  8,   9,  10,11, 12,13,14, 15, 16};
+    static Integer[] scores =   {100,200,50,400,500,350,700,800,900,850,711,853,999,1001,777,42,177,63,26,292,711,888};
+    static int level = 10;
 
     public static void main(String[] args) {
 
@@ -26,13 +29,36 @@ public class HttpServerTest {
         simpleHttpServer.start();
         System.out.println("King Server is started and listening on port "+ PORT + " context "+ CONTEXT);
 
-
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
 
         for(int i=0;i<100;i++) {
-            executor.submit(new Task(i%9));
+            executor.execute(new Task(i%22));
         }
 
+
+
+        try {
+            while (executor.getActiveCount()!=0) {
+
+            }
+
+            printHighScores();
+            Arrays.stream(scores).sorted((f1, f2) -> Long.compare(f2, f1)).limit(15).forEach(s-> System.out.println("score: "+ s));
+        } catch (Exception exception) {
+            exception.printStackTrace();
+        }
+
+
+    }
+
+
+    public static void printHighScores() {
+        String hightScoreList = doHttpRequest(String.format("%s:%d/%d/%s", ADDRESS, PORT, 10, HIGHSCORE_PATH),
+                "",
+                "GET");
+
+        //System.out.println("sessionKey: "+ sessionKey);
+        System.out.printf("level %d hightScoreList: %s%n",10, hightScoreList);
     }
 
     public static String doHttpRequest(String targetURL, String body, String method) {
@@ -87,16 +113,10 @@ public class HttpServerTest {
                     "",
                     "GET");
             doHttpRequest(
-                    String.format("%s:%d/%d/%s?%s=%s", ADDRESS, PORT, levels[index], SCORE_PATH,SESSION_QUERY_KEY,sessionKey),
+                    String.format("%s:%d/%d/%s?%s=%s", ADDRESS, PORT, level, SCORE_PATH,SESSION_QUERY_KEY,sessionKey),
                     scores[index].toString(),
                     "POST");
 
-            String hightScoreList = doHttpRequest(String.format("%s:%d/%d/%s", ADDRESS, PORT, levels[index], HIGHSCORE_PATH),
-                    "",
-                    "GET");
-
-            //System.out.println("sessionKey: "+ sessionKey);
-            System.out.printf("level %d hightScoreList: %s%n",levels[index], hightScoreList);
         }
     }
 }

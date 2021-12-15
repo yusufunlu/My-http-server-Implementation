@@ -6,8 +6,11 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static com.king.gameserver.Util.*;
 
@@ -18,40 +21,45 @@ public class RootHandler implements HttpHandler {
 
     ConcurrentHashMap<String, Integer> sessionUserMap = new ConcurrentHashMap<>();
     ConcurrentHashMap<Integer, String> userSessionMap = new ConcurrentHashMap<>();
-    ConcurrentHashMap<Integer, TreeSet<UserScore>> scoreMap = new ConcurrentHashMap<>();
 
-    public void handle(HttpExchange httpExchange) throws IOException {
+    ConcurrentHashMap<Integer, ConcurrentSkipListMap <Integer, Integer>> scoreMapping = new ConcurrentHashMap<>();
+
+
+    public void handle(HttpExchange httpExchange){
 
         URI uri = httpExchange.getRequestURI();
 
         String path = uri.getPath();
-        String [] subPath = path.split(PATH_DELIMITER);
+        String[] subPath = path.split(PATH_DELIMITER);
 
         String response = "";
 
+        try {
+            //<userid>/login
+            //<levelid>/score?sessionkey=<sessionkey>
+            //<levelid>/highscorelist
 
-        //<userid>/login
-        //<levelid>/score?sessionkey=<sessionkey>
-        //<levelid>/highscorelist
+            if (subPath[2].equalsIgnoreCase(LOGIN_PATH)) {
+                int userId = Integer.parseInt(subPath[1]);
+                response = createSession(userId);
+            } else if (subPath[2].equalsIgnoreCase(SCORE_PATH)) {
+                int levelId = Integer.parseInt(subPath[1]);
+                int score = Util.getIntFromHttpExchange(httpExchange);
+                postScore(levelId, Util.getQueryParam(uri), score);
+            } else if (subPath[2].equalsIgnoreCase(HIGHSCORE_PATH)) {
+                int levelid = Integer.parseInt(subPath[1]);
+                response = getHightScoreList(levelid);
+            }
 
-        if(subPath[2].equalsIgnoreCase(LOGIN_PATH)) {
-            int userId = Integer.parseInt(subPath[1]);
-            response = createSession(userId);
-        } else if(subPath[2].equalsIgnoreCase(SCORE_PATH)){
-            int levelId = Integer.parseInt(subPath[1]);
-            int score = Util.getIntFromHttpExchange(httpExchange);
-            postScore(levelId, Util.getQueryParam(uri),score);
-        } else if(subPath[2].equalsIgnoreCase(HIGHSCORE_PATH)){
-            int levelid = Integer.parseInt(subPath[1]);
-            response = getHightScoreList(levelid);
+            httpExchange.sendResponseHeaders(HttpURLConnection.HTTP_OK, response.getBytes().length);
+            OutputStream os = httpExchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+        } catch (Exception exception) {
+            exception.printStackTrace();
         }
 
-        httpExchange.sendResponseHeaders(HttpURLConnection.HTTP_OK, response.getBytes().length);
-        OutputStream os = httpExchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
     }
-
 
 
     //expired sessionkeys management is getting hard
@@ -63,14 +71,14 @@ public class RootHandler implements HttpHandler {
         //
         synchronized (userSessionMap) {
             synchronized (sessionUserMap) {
-                if(userSessionMap.contains(userId)){
+                if (userSessionMap.contains(userId)) {
                     String oldSessionKey = userSessionMap.get(userId);
-                    userSessionMap.put(userId,sessionkey);
+                    userSessionMap.put(userId, sessionkey);
                     sessionUserMap.remove(oldSessionKey);
-                    sessionUserMap.put(sessionkey,userId);
+                    sessionUserMap.put(sessionkey, userId);
                 } else {
-                    userSessionMap.put(userId,sessionkey);
-                    sessionUserMap.put(sessionkey,userId);
+                    userSessionMap.put(userId, sessionkey);
+                    sessionUserMap.put(sessionkey, userId);
                 }
             }
         }
@@ -80,16 +88,31 @@ public class RootHandler implements HttpHandler {
 
 
     //<levelid>/score?sessionkey=<sessionkey>
-    private void postScore(int levelId,String sessionKey, int score) {
+    private void postScore(int levelId, String sessionKey, int score) {
 
         Integer userId = sessionUserMap.get(sessionKey);
 
-        TreeSet<UserScore> userScoreTreeSet = scoreMap.computeIfAbsent(levelId, k -> new TreeSet<>());
-        synchronized (userScoreTreeSet){
-            userScoreTreeSet.add(new UserScore(userId,score));
+
+        try {
+            scoreMapping.computeIfAbsent(levelId, k-> new ConcurrentSkipListMap <>());
+            scoreMapping.computeIfPresent(levelId, (k, v) -> {
+                if(v.containsKey(userId)) {
+                    if(v.get(userId)<score){
+                        v.put(userId, score);
+                    }
+                } else {
+                    v.put(userId, score);
+                }
+                return v;
+            });
+
+            System.out.println("userid: " + userId + " score: " + scoreMapping.get(levelId).get(userId));
+            System.out.println(String.format("levelid:%d <-post userId:%d score:%d",levelId,userId,score));
+
+        } catch (Exception exception) {
+            exception.printStackTrace();
         }
 
-        System.out.println(String.format("levelid:%d <-post userId:%d score:%d",levelId,userId,score));
     }
 
     //<levelid>/highscorelist, 15 results like userid=score,userid=score
@@ -97,15 +120,27 @@ public class RootHandler implements HttpHandler {
 
         StringBuilder sb = new StringBuilder();
 
-        if(scoreMap.containsKey(levelId)) {
-            System.out.println(String.format("levelid:%d score count:%d",levelId,scoreMap.get(levelId).size()));
-            scoreMap.get(levelId).stream().limit(15).forEach(userScore -> sb.append(userScore.toString()+","));
+        try {
+            if(scoreMapping.containsKey(levelId)) {
+                scoreMapping.get(levelId).entrySet().stream().limit(15).forEach(x -> {
 
-            sb.deleteCharAt(sb.length()-1);
+                    sb.append(x.getKey()+"="+x.getValue()+",");
+                    //System.out.println(String.format("levelid:%d score count:%d",levelId,scoreMapping.get(levelId).size()));
+                });
+
+                if(!sb.toString().isEmpty() && !sb.toString().isBlank()) {
+                    sb.deleteCharAt(sb.length()-1);
+                }
+
+            }
+        } catch (Exception exception) {
+            exception.printStackTrace();
         }
+
 
         return sb.toString();
     }
+
 
 
 

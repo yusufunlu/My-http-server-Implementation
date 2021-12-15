@@ -32,5 +32,19 @@ Project from technical aspect
 
 
 
+1=300,3=400,4=500,5=600,6=700,7=800,8=900
+
+
+levelid =1
+    userid =ibrahim
+        100
+    userid= yusuf
+    userid= gokhan
+
+
+
+
+
+
 
 
