@@ -1,14 +1,15 @@
 package com.king.gameserver;
 
+import org.junit.jupiter.api.Test;
+
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import static com.king.gameserver.Util.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HttpServerTest {
 
@@ -18,8 +19,10 @@ public class HttpServerTest {
     private final static int BACKLOG = 100;
 
     static int[] levels = {10,10,10,10,10,10,10,10,10,10};
-    static int[] userIds=       {2,  1,  1, 3,  1,  4,  1,  7,  8,  9,  5,  6,  7,  8,   9,  10,11, 12,13,14, 15, 16};
-    static Integer[] scores =   {100,200,50,400,500,350,700,800,900,850,711,853,999,1001,777,42,177,63,26,292,711,888};
+    //no high score for user 2,3
+    //multiple high scores for user 1
+    static int[] userIds=       {1,  1,  1,  4,  5,  6,  7,  8,  9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  1, 1, 1};
+    static Integer[] scores =   {100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,50,550,600};
     static int level = 10;
 
     public static void main(String[] args) {
@@ -31,10 +34,9 @@ public class HttpServerTest {
 
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
 
-        for(int i=0;i<100;i++) {
+        for(int i=0;i<1000;i++) {
             executor.execute(new Task(i%22));
         }
-
 
 
         try {
@@ -42,23 +44,30 @@ public class HttpServerTest {
 
             }
 
-            printHighScores();
-            Arrays.stream(scores).sorted((f1, f2) -> Long.compare(f2, f1)).limit(15).forEach(s-> System.out.println("score: "+ s));
+            testHighScores();
+
+            //Arrays.stream(scores).sorted((f1, f2) -> Long.compare(f2, f1)).limit(15).forEach(s-> System.out.println("score: "+ s));
         } catch (Exception exception) {
             exception.printStackTrace();
         }
 
+        System.exit(0);
+        return;
 
     }
 
-
-    public static void printHighScores() {
+    @Test
+    public static int testHighScores() {
         String hightScoreList = doHttpRequest(String.format("%s:%d/%d/%s", ADDRESS, PORT, 10, HIGHSCORE_PATH),
                 "",
                 "GET");
 
-        //System.out.println("sessionKey: "+ sessionKey);
-        System.out.printf("level %d hightScoreList: %s%n",10, hightScoreList);
+        String[] highScores = hightScoreList.split(",");
+        assertEquals(15, highScores.length);
+
+        System.out.printf("highScore count: %d level %d hightScoreList: %s%n",highScores.length,10, hightScoreList);
+
+        return highScores.length;
     }
 
     public static String doHttpRequest(String targetURL, String body, String method) {

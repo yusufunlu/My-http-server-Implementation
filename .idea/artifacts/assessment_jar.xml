@@ -3,6 +3,7 @@
     <output-path>$PROJECT_DIR$/out/artifacts/assessment_jar</output-path>
     <root id="archive" name="assessment.jar">
       <element id="module-output" name="assessment" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/junit-jupiter-api-5.8.2.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>
